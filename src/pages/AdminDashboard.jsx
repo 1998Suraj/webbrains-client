@@ -76,15 +76,20 @@ const AdminDashboard = () => {
   }, []);
 
   const fetchBlogById = async (id) => {
-    try {
-      setLoading((prev) => ({ ...prev, fetchingDetails: true }));
-      const response = await apiService.get(`/posts/get-blog/${id}`);
-      setBlogDetail(response.data);
-      setOpenDetailDialog(true);
-    } catch (err) {
-      toast.error(err?.message || "Unable to fetch blog details");
-    } finally {
-      setLoading((prev) => ({ ...prev, fetchingDetails: false }));
+    if (selectedBlog) {
+      try {
+        setLoading((prev) => ({ ...prev, fetchingDetails: true }));
+        const response = await apiService.get(`/posts/get-blog/${selectedBlog._id}`);
+        setBlogDetail(response.data);
+        setOpenDetailDialog(true);
+        handleMenuClose();
+      } catch (err) {
+        toast.error(err?.message || "Unable to fetch blog details");
+      } finally {
+        setLoading((prev) => ({ ...prev, fetchingDetails: false }));
+      }
+    } else {
+      toast.error("No blog selected for editing");
     }
   };
 
@@ -93,8 +98,18 @@ const AdminDashboard = () => {
     setEditBlog((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleMenuClick = (event, blog) => {
+    console.log("Selected Blog from Menu Click:", blog);
+    setAnchorEl(event.currentTarget);
+    setSelectedBlog(blog);
+    setEditBlog({ title: blog.title, content: blog.content });
+  };
+
   const handleEdit = async () => {
     if (selectedBlog) {
+      console.log("Selected Blog for Editing:", selectedBlog);
+      console.log("Edited Blog Data:", editBlog);
+
       try {
         await apiService.put(`/posts/edit-blog/${selectedBlog._id}`, {
           title: editBlog.title,
@@ -108,12 +123,15 @@ const AdminDashboard = () => {
               : blog
           )
         );
+        handleMenuClose();
         toast.success("Blog updated successfully");
       } catch (err) {
         toast.error(err.message || "Unable to update the blog");
       } finally {
         setOpenEditDialog(false);
       }
+    } else {
+      toast.error("No blog selected for editing");
     }
   };
 
@@ -171,12 +189,6 @@ const AdminDashboard = () => {
     } finally {
       setLoading((prev) => ({ ...prev, [`save-${id}`]: false }));
     }
-  };
-
-  const handleMenuClick = (event, blog) => {
-    setAnchorEl(event.currentTarget);
-    setSelectedBlog(blog);
-    setEditBlog({ title: blog.title, content: blog.content });
   };
 
   const handleMenuClose = () => {
@@ -243,7 +255,8 @@ const AdminDashboard = () => {
             p={2}
           >
             <Typography variant="body2" color="textSecondary">
-              Blog Added: {moment(blog.createdAt).format("MMMM Do YYYY, h:mm a")}
+              Blog Added:{" "}
+              {moment(blog.createdAt).format("MMMM Do YYYY, h:mm a")}
             </Typography>
             <Box display="flex" alignItems="center">
               <IconButton
@@ -311,7 +324,6 @@ const AdminDashboard = () => {
                 <MenuItem
                   onClick={() => {
                     setOpenEditDialog(true);
-                    handleMenuClose();
                   }}
                 >
                   <Edit fontSize="small" sx={{ mr: 1 }} />
